@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Çizim Atölyesi">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
+<title>Çizim Atölyesi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* Düzen: ana sayfada kategori sekmeleri + resim kartları; derste solda büyük çizim sahnesi, sağda adım paneli (dikeyde alt alta). */
+:root {
+  --bg: #E7F2FF;
+  --card: #FFFFFF;
+  --ink: #17263F;
+  --muted: #55667F;
+  --line: #C9DAF0;
+  --primary: #2F6BFF;
+  --primary-ink: #FFFFFF;
+  --hi: #FF4F81;
+  --star: #FFB800;
+  --good: #1FA36B;
+  --font-display: "Fredoka", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+  --font-body: "Nunito", ui-rounded, system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 600;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 4px solid var(--hi); outline-offset: 3px; }
+h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+.wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+/* ---------- ana sayfa ---------- */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+.top h1 { font-size: clamp(2rem, 6vw, 3rem); font-weight: 700; letter-spacing: .01em; }
+.progress { flex: 1 1 260px; max-width: 420px; display: flex; flex-direction: column; gap: 6px; }
+.progress .txt { font-weight: 800; color: var(--muted); }
+.bar { height: 14px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--good); border-radius: 99px; transition: width .4s; }
+.tabs { display: flex; flex-wrap: wrap; gap: 10px; }
+.tab { border: 3px solid var(--line); background: var(--card); border-radius: 99px; padding: 10px 20px; font-weight: 800; min-height: 48px; }
+.tab[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.tab.rand { margin-left: auto; background: var(--hi); border-color: var(--hi); color: #fff; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+.card { position: relative; display: flex; flex-direction: column; gap: 6px; align-items: stretch; text-align: left; background: var(--card); border: 3px solid var(--line); border-radius: 22px; padding: 12px 12px 14px; min-width: 0; }
+.card:active { transform: scale(.97); }
+.card .thumb { display: block; aspect-ratio: 1; border-radius: 14px; background: #F4F9FF; padding: 6px; }
+.card .nm { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; }
+.card .sub { font-size: .85rem; color: var(--muted); font-weight: 700; }
+.card .badge { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; }
+
+/* ---------- çizim (SVG) ---------- */
+.art { display: block; width: 100%; height: 100%; }
+.art .st * { fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.art .now * { stroke: var(--hi); }
+.art .st .f { fill: var(--ink); stroke: none; }
+.art .now .f { fill: var(--hi); }
+
+/* ---------- ders ---------- */
+.lesson { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 820px) and (orientation: landscape) { .lesson { grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); } }
+.back { align-self: flex-start; border: 3px solid var(--line); background: var(--card); border-radius: 99px; padding: 10px 20px 10px 14px; font-weight: 800; min-height: 48px; display: inline-flex; gap: 8px; align-items: center; }
+.stage { position: relative; aspect-ratio: 1; width: 100%; max-width: min(100%, 80vh); margin-inline: auto; background: #fff; border: 4px solid var(--ink); border-radius: 28px; overflow: hidden; }
+.stage .art { position: absolute; inset: 0; padding: 4%; }
+.panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.panel .kicker { font-weight: 800; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; font-size: .85rem; }
+.panel h2 { font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 700; }
+.say { font-family: var(--font-display); font-size: clamp(1.4rem, 3.2vw, 1.8rem); font-weight: 500; line-height: 1.3; background: var(--card); border: 3px solid var(--line); border-radius: 22px; padding: 16px 18px; min-height: 5.6em; }
+.dots { display: flex; flex-wrap: wrap; gap: 8px; }
+.dots button { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--line); background: var(--card); font-weight: 800; padding: 0; }
+.dots button.on { background: var(--hi); border-color: var(--hi); color: #fff; }
+.dots button.past { background: var(--ink); border-color: var(--ink); color: #fff; }
+.nav { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+.btn { min-height: 68px; border-radius: 22px; border: 0; font-family: var(--font-display); font-weight: 600; font-size: 1.4rem; padding: 12px 18px; }
+.btn.prev { background: var(--card); border: 3px solid var(--line); }
+.btn.next { background: var(--primary); color: var(--primary-ink); }
+.btn.finish { background: var(--good); color: #fff; }
+.btn:disabled { opacity: .4; cursor: default; }
+.hint { color: var(--muted); font-size: .95rem; }
+
+/* ---------- kutlama ---------- */
+.win { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(23, 38, 63, .7); }
+.win .box { position: relative; overflow: hidden; background: var(--card); border-radius: 32px; padding: 28px; text-align: center; max-width: 460px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.win .big { width: 120px; height: 120px; animation: pop .6s cubic-bezier(.2, 1.6, .4, 1); }
+.win h2 { font-size: 2.4rem; }
+.win .row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.win .row .btn { min-height: 56px; font-size: 1.15rem; }
+.piece { position: absolute; top: -12px; width: 10px; height: 16px; border-radius: 3px; animation: fall 2.4s linear infinite; }
+@keyframes fall { to { transform: translateY(520px) rotate(540deg); } }
+@keyframes pop { from { transform: scale(.2) rotate(-30deg); } }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: #fff; padding: 14px 22px; border-radius: 99px; z-index: 60; max-width: calc(100% - 32px); text-align: center; }
+@media (prefers-reduced-motion: reduce) { .piece, .win .big { animation: none; } .bar > i { transition: none; } }
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- çizim yardımcıları (100x100 kutu) ---------- */
+  var circ = function (x, y, r) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"/>'; };
+  var dot = function (x, y, r) { return '<circle class="f" cx="' + x + '" cy="' + y + '" r="' + r + '"/>'; };
+  var ell = function (x, y, rx, ry) { return '<ellipse cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '"/>'; };
+  var edot = function (x, y, rx, ry) { return '<ellipse class="f" cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '"/>'; };
+  var ln = function (a, b, c, d) { return '<line x1="' + a + '" y1="' + b + '" x2="' + c + '" y2="' + d + '"/>'; };
+  var pth = function (d) { return '<path d="' + d + '"/>'; };
+  var rct = function (x, y, w, h, rx) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + (rx || 0) + '"/>'; };
+  var rays = function (cx, cy, r1, r2, n) {
+    var s = "";
+    for (var i = 0; i < n; i++) {
+      var a = i * 2 * Math.PI / n;
+      s += ln((cx + r1 * Math.cos(a)).toFixed(1), (cy + r1 * Math.sin(a)).toFixed(1), (cx + r2 * Math.cos(a)).toFixed(1), (cy + r2 * Math.sin(a)).toFixed(1));
+    }
+    return s;
+  };
+  var petals = function (cx, cy, d, r, n) {
+    var s = "";
+    for (var i = 0; i < n; i++) {
+      var a = i * 2 * Math.PI / n - Math.PI / 2;
+      s += circ((cx + d * Math.cos(a)).toFixed(1), (cy + d * Math.sin(a)).toFixed(1), r);
+    }
+    return s;
+  };
+
+  /* ---------- resimler ---------- */
+  var D = [];
+  var add = function (id, name, cat, steps) { D.push({ id: id, name: name, cat: cat, steps: steps }); };
+
+  /* Hayvanlar */
+  add("kedi", "Kedi", "Hayvanlar", [
+    ["Büyük bir daire çiz. Bu kedinin yüzü.", circ(50, 55, 28)],
+    ["Tepesine iki sivri kulak ekle.", pth("M26 40 L24 14 L44 30") + pth("M74 40 L76 14 L56 30")],
+    ["İki yuvarlak göz çiz.", dot(40, 52, 3.5) + dot(60, 52, 3.5)],
+    ["Küçük bir burun çiz, altına gülen bir ağız ekle.", pth("M46 62 L54 62 L50 67 Z") + pth("M50 67 Q44 74 38 70") + pth("M50 67 Q56 74 62 70")],
+    ["Her yana iki bıyık çiz.", ln(30, 62, 12, 58) + ln(30, 68, 12, 70) + ln(70, 62, 88, 58) + ln(70, 68, 88, 70)]
+  ]);
+  add("kopek", "Köpek", "Hayvanlar", [
+    ["Yumurta gibi bir yuvarlak çiz. Bu köpeğin yüzü.", ell(50, 55, 26, 24)],
+    ["Yanlara sarkık iki kulak ekle.", pth("M26 40 Q10 45 16 72 Q28 70 30 50") + pth("M74 40 Q90 45 84 72 Q72 70 70 50")],
+    ["İki göz çiz.", dot(40, 50, 3.5) + dot(60, 50, 3.5)],
+    ["Ortaya kocaman bir burun koy.", edot(50, 62, 7, 5)],
+    ["Ağzını ve dilini çiz.", ln(50, 67, 50, 72) + pth("M42 74 Q50 80 58 74") + pth("M47 77 Q50 87 53 77")]
+  ]);
+  add("balik", "Balık", "Hayvanlar", [
+    ["Yatık bir oval çiz. Bu balığın gövdesi.", ell(48, 50, 30, 19)],
+    ["Arkasına üçgen bir kuyruk ekle.", pth("M76 50 L96 32 L96 68 Z")],
+    ["Üstüne bir yüzgeç çiz.", pth("M45 32 Q55 18 62 34")],
+    ["Göz ve küçük bir ağız çiz.", dot(32, 45, 3) + pth("M20 54 Q24 57 27 54")],
+    ["Pulları ve baloncukları ekle.", pth("M45 42 Q52 50 45 58") + pth("M56 42 Q63 50 56 58") + circ(14, 30, 3) + circ(9, 20, 2)]
+  ]);
+  add("kus", "Kuş", "Hayvanlar", [
+    ["Yumurta şeklinde bir gövde çiz.", ell(48, 58, 26, 22)],
+    ["Üstüne yuvarlak bir kafa ekle.", circ(70, 38, 14)],
+    ["Üçgen bir gaga ve bir göz çiz.", pth("M82 36 L96 41 L82 45 Z") + dot(72, 35, 2.5)],
+    ["Kanat ve kuyruk ekle.", pth("M35 55 Q48 40 62 58 Q48 68 35 55") + pth("M24 52 L6 44 L10 62 Z")],
+    ["İki ince bacak çiz.", ln(44, 80, 44, 92) + ln(56, 80, 56, 92) + ln(38, 92, 48, 92) + ln(52, 92, 62, 92)]
+  ]);
+  add("kelebek", "Kelebek", "Hayvanlar", [
+    ["Ortaya uzun bir oval çiz. Bu kelebeğin gövdesi.", ell(50, 52, 3, 18)],
+    ["Yukarıya iki büyük kanat çiz.", pth("M47 44 Q14 8 10 38 Q10 54 47 52") + pth("M53 44 Q86 8 90 38 Q90 54 53 52")],
+    ["Aşağıya iki küçük kanat çiz.", pth("M47 54 Q18 56 24 80 Q40 88 47 62") + pth("M53 54 Q82 56 76 80 Q60 88 53 62")],
+    ["İki ince anten ekle.", pth("M49 34 Q42 22 36 20") + pth("M51 34 Q58 22 64 20")],
+    ["Kanatlara yuvarlak desenler yap.", circ(26, 34, 5) + circ(74, 34, 5)]
+  ]);
+  add("tavsan", "Tavşan", "Hayvanlar", [
+    ["Büyük bir daire çiz. Bu tavşanın yüzü.", circ(50, 64, 22)],
+    ["Üstüne iki uzun kulak çiz.", ell(40, 24, 7, 20) + ell(60, 24, 7, 20)],
+    ["İki göz çiz.", dot(43, 60, 3) + dot(57, 60, 3)],
+    ["Küçük bir burun ve ağız ekle.", dot(50, 67, 2.5) + pth("M50 69 Q46 74 42 72") + pth("M50 69 Q54 74 58 72")],
+    ["Bıyıklarını çiz.", ln(36, 68, 20, 66) + ln(36, 72, 20, 76) + ln(64, 68, 80, 66) + ln(64, 72, 80, 76)]
+  ]);
+  add("penguen", "Penguen", "Hayvanlar", [
+    ["Uzun bir oval çiz. Bu penguenin gövdesi.", ell(50, 58, 24, 32)],
+    ["İçine daha küçük bir oval çiz. Bu karnı.", ell(50, 64, 15, 22)],
+    ["İki göz çiz.", dot(43, 40, 3) + dot(57, 40, 3)],
+    ["Üçgen bir gaga ekle.", pth("M44 46 L56 46 L50 54 Z")],
+    ["Kanatları ve ayakları çiz.", pth("M26 52 Q12 66 22 78") + pth("M74 52 Q88 66 78 78") + pth("M34 92 Q40 84 46 92 Z") + pth("M54 92 Q60 84 66 92 Z")]
+  ]);
+  add("kaplumbaga", "Kaplumbağa", "Hayvanlar", [
+    ["Yarım daire gibi bir kabuk çiz.", pth("M12 68 Q12 30 46 30 Q80 30 80 68 Z")],
+    ["Kabuğun üstüne çizgiler çiz.", pth("M46 30 L46 68") + pth("M30 38 Q33 54 28 68") + pth("M62 38 Q59 54 64 68")],
+    ["Bir kafa ve göz ekle.", circ(88, 56, 9) + dot(91, 53, 1.8)],
+    ["Altına iki küçük bacak çiz.", ell(26, 74, 8, 6) + ell(66, 74, 8, 6)]
+  ]);
+
+  /* Taşıtlar */
+  add("araba", "Araba", "Taşıtlar", [
+    ["Uzun bir dikdörtgen çiz. Bu arabanın alt kısmı.", rct(8, 46, 86, 20, 4)],
+    ["Üstüne bir çatı çiz.", pth("M26 46 L36 28 L66 28 L78 46")],
+    ["Çatıya iki pencere çiz.", pth("M34 46 L40 32 L50 32 L50 46") + pth("M54 32 L64 32 L72 46 L54 46")],
+    ["Altına iki tekerlek ekle.", circ(28, 68, 9) + circ(76, 68, 9) + dot(28, 68, 3) + dot(76, 68, 3)],
+    ["Öne bir far koy.", dot(90, 54, 3.5)]
+  ]);
+  add("otobus", "Otobüs", "Taşıtlar", [
+    ["Büyük bir dikdörtgen çiz.", rct(8, 24, 84, 48, 6)],
+    ["Dört pencere çiz.", rct(14, 32, 16, 14, 2) + rct(34, 32, 16, 14, 2) + rct(54, 32, 16, 14, 2) + rct(74, 32, 12, 14, 2)],
+    ["Bir çizgi çek.", ln(8, 58, 92, 58)],
+    ["İki tekerlek ekle.", circ(26, 74, 8) + circ(74, 74, 8) + dot(26, 74, 2.5) + dot(74, 74, 2.5)]
+  ]);
+  add("tekne", "Tekne", "Taşıtlar", [
+    ["Bir kâse gibi gövde çiz. Üstü geniş, altı dar olsun.", pth("M10 62 L90 62 L78 82 L22 82 Z")],
+    ["Ortasına dik bir direk çiz.", ln(50, 62, 50, 14)],
+    ["İki yelken ekle.", pth("M50 16 L80 54 L50 54 Z") + pth("M46 24 L24 54 L46 54 Z")],
+    ["Altına dalgalar çiz.", pth("M6 90 Q14 84 22 90 T38 90 T54 90 T70 90 T86 90")]
+  ]);
+  add("ucak", "Uçak", "Taşıtlar", [
+    ["Uzun bir oval çiz. Bu uçağın gövdesi.", ell(50, 50, 40, 9)],
+    ["Yukarı ve aşağı iki kanat çiz.", pth("M44 48 L30 22 L40 22 L62 48") + pth("M44 52 L30 78 L40 78 L62 52")],
+    ["Arkaya bir kuyruk ekle.", pth("M14 46 L8 30 L18 30 L26 46")],
+    ["Pencereleri çiz.", dot(40, 50, 2.2) + dot(50, 50, 2.2) + dot(60, 50, 2.2)]
+  ]);
+  add("roket", "Roket", "Taşıtlar", [
+    ["Sivri uçlu uzun bir gövde çiz.", pth("M50 8 Q70 30 66 70 L34 70 Q30 30 50 8")],
+    ["Ortasına yuvarlak bir pencere çiz.", circ(50, 40, 8)],
+    ["İki yana kanat ekle.", pth("M34 58 L18 78 L34 74") + pth("M66 58 L82 78 L66 74")],
+    ["Altına alev çiz.", pth("M42 74 Q50 98 58 74")]
+  ]);
+  add("bisiklet", "Bisiklet", "Taşıtlar", [
+    ["İki büyük tekerlek çiz.", circ(24, 66, 18) + circ(76, 66, 18)],
+    ["Tekerlekleri çerçeveyle birleştir.", pth("M24 66 L40 40 L64 40 L50 66 Z") + ln(64, 40, 76, 66)],
+    ["Gidonu ve selesi ekle.", ln(64, 40, 62, 30) + ln(57, 30, 68, 30) + ln(34, 38, 46, 38)]
+  ]);
+
+  /* Doğa */
+  add("gunes", "Güneş", "Doğa", [
+    ["Ortaya bir daire çiz.", circ(50, 50, 16)],
+    ["Etrafına ışınlar çiz.", rays(50, 50, 22, 36, 10)],
+    ["Güneşe gülen bir yüz yap.", dot(44, 46, 2.5) + dot(56, 46, 2.5) + pth("M43 54 Q50 61 57 54")]
+  ]);
+  add("agac", "Ağaç", "Doğa", [
+    ["İki dik çizgiyle gövdeyi çiz.", pth("M43 64 L43 92 L57 92 L57 64")],
+    ["Üstüne bulut gibi yapraklı bir taç çiz.", pth("M30 64 Q8 64 14 44 Q14 28 32 30 Q34 10 54 12 Q74 12 74 30 Q92 30 88 46 Q90 64 70 64 Z")],
+    ["Ağaca elmalar ekle.", dot(36, 44, 3.5) + dot(60, 34, 3.5) + dot(70, 52, 3.5) + dot(46, 54, 3.5)]
+  ]);
+  add("cicek", "Çiçek", "Doğa", [
+    ["Önce küçük bir daire çiz. Bu çiçeğin ortası.", circ(50, 34, 7)],
+    ["Etrafına yuvarlak yapraklar ekle.", petals(50, 34, 15, 9, 6)],
+    ["Aşağıya doğru uzun bir sap çiz.", pth("M50 52 Q46 72 50 92")],
+    ["Sapa iki yaprak ekle.", pth("M49 74 Q32 66 30 76 Q40 84 49 74") + pth("M50 66 Q68 58 72 68 Q62 76 50 66")]
+  ]);
+  add("bulut", "Yağmurlu bulut", "Doğa", [
+    ["Kabarık bir bulut çiz.", pth("M26 56 Q8 56 12 40 Q14 26 32 28 Q38 12 56 16 Q72 18 72 32 Q92 30 90 46 Q90 58 74 56 Z")],
+    ["Altına küçük yağmur damlaları çiz.", ln(30, 66, 26, 78) + ln(48, 66, 44, 78) + ln(66, 66, 62, 78) + ln(80, 66, 76, 78)],
+    ["Daha fazla yağmur yağsın.", ln(38, 80, 34, 92) + ln(58, 80, 54, 92) + ln(76, 82, 72, 94) + ln(20, 76, 16, 88)]
+  ]);
+  add("ev", "Ev", "Doğa", [
+    ["Bir kare çiz. Bu evin duvarları.", rct(18, 46, 64, 44)],
+    ["Üstüne üçgen bir çatı koy.", pth("M10 48 L50 14 L90 48 Z")],
+    ["Ortaya bir kapı çiz.", rct(42, 64, 16, 26)],
+    ["İki yana pencere ekle.", rct(24, 56, 14, 14) + rct(62, 56, 14, 14) + ln(31, 56, 31, 70) + ln(24, 63, 38, 63) + ln(69, 56, 69, 70) + ln(62, 63, 76, 63)],
+    ["Çatıya bir baca ekle.", pth("M68 30 L68 18 L78 18 L78 38")]
+  ]);
+  add("dag", "Dağ", "Doğa", [
+    ["İki sivri tepeli bir dağ çiz.", pth("M4 86 L36 28 L56 58 L68 40 L96 86 Z")],
+    ["Tepesine kar ekle.", pth("M28 44 L36 28 L44 44 L39 40 L36 46 L33 40 Z")],
+    ["Gökyüzüne bir güneş çiz.", circ(82, 18, 9)],
+    ["Birkaç kuş ekle.", pth("M16 20 Q20 14 24 20 Q28 14 32 20") + pth("M40 10 Q43 5 46 10 Q49 5 52 10")]
+  ]);
+
+  /* Yiyecek */
+  add("elma", "Elma", "Yiyecek", [
+    ["Yuvarlak bir elma çiz. Üstü hafif çukur olsun.", pth("M50 28 Q22 18 16 46 Q12 76 36 88 Q50 94 64 88 Q88 76 84 46 Q78 18 50 28")],
+    ["Üstüne bir sap ekle.", pth("M50 28 Q50 16 56 10")],
+    ["Sapa bir yaprak çiz.", pth("M54 18 Q66 8 76 16 Q66 26 54 18")],
+    ["Elmaya parlama çizgisi çiz.", pth("M28 46 Q28 38 34 34")]
+  ]);
+  add("dondurma", "Dondurma", "Yiyecek", [
+    ["Ters bir üçgen çiz. Bu külah.", pth("M32 52 L50 94 L68 52 Z")],
+    ["Külaha çapraz çizgiler çiz.", ln(41, 62, 56, 80) + ln(59, 62, 44, 80)],
+    ["Üstüne büyük bir dondurma topu koy.", pth("M28 52 Q22 26 50 26 Q78 26 72 52 Q62 60 50 54 Q38 60 28 52")],
+    ["En üste bir kiraz ekle.", circ(50, 20, 6) + pth("M50 14 Q52 6 60 4")]
+  ]);
+  add("pizza", "Pizza", "Yiyecek", [
+    ["Bir üçgen çiz, üst kenarı hafif yuvarlak olsun.", pth("M50 92 L10 24 Q50 8 90 24 Z")],
+    ["Üst kenara bir hamur çizgisi ekle.", pth("M16 34 Q50 19 84 34")],
+    ["Üç yuvarlak sucuk koy.", circ(38, 42, 6) + circ(62, 42, 6) + circ(50, 64, 6)]
+  ]);
+  add("karpuz", "Karpuz", "Yiyecek", [
+    ["Yarım ay gibi bir dilim çiz.", pth("M8 40 Q50 100 92 40 Z")],
+    ["İçine bir çizgi daha çiz. Bu kabuğu.", pth("M15 46 Q50 90 85 46")],
+    ["Çekirdekleri ekle.", edot(34, 52, 2, 3) + edot(50, 64, 2, 3) + edot(66, 52, 2, 3) + edot(50, 50, 2, 3)]
+  ]);
+  add("muz", "Muz", "Yiyecek", [
+    ["Büyük bir hilal çiz.", pth("M26 18 Q16 70 62 86 Q84 92 92 74")],
+    ["İçine ikinci bir çizgi çiz.", pth("M38 20 Q36 54 66 72 Q78 78 92 74")],
+    ["Tepesine sapı çiz.", pth("M26 18 L24 8 L34 8 L38 20")]
+  ]);
+
+  /* Eşyalar */
+  add("balon", "Balon", "Eşyalar", [
+    ["Büyük bir oval çiz. Bu balon.", ell(50, 38, 24, 30)],
+    ["Altına küçük bir üçgen ekle.", pth("M50 68 L45 75 L55 75 Z")],
+    ["Üçgenden aşağı bir ip sarkıt.", pth("M50 75 Q40 83 50 92")],
+    ["Balona parlama çizgisi çiz.", pth("M36 24 Q32 32 35 40")]
+  ]);
+  add("kalp", "Kalp", "Eşyalar", [
+    ["Önce iki tepe çiz, sonra aşağıda birleştir.", pth("M50 88 L16 52 Q4 34 22 24 Q40 16 50 34 Q60 16 78 24 Q96 34 84 52 Z")],
+    ["Kalbe parlama çizgisi ekle.", pth("M24 34 Q28 27 35 29")]
+  ]);
+  add("yildiz", "Yıldız", "Eşyalar", [
+    ["Beş uçlu bir yıldız çiz.", pth("M50 8 L61 38 L93 38 L67 57 L77 88 L50 69 L23 88 L33 57 L7 38 L39 38 Z")],
+    ["Yıldıza gülen bir yüz yap.", dot(43, 46, 2.5) + dot(57, 46, 2.5) + pth("M43 55 Q50 62 57 55")]
+  ]);
+  add("semsiye", "Şemsiye", "Eşyalar", [
+    ["Yarım daire gibi bir üst çiz. Altı dalgalı olsun.", pth("M10 54 Q10 14 50 14 Q90 14 90 54 Q78 46 66 54 Q58 46 50 54 Q42 46 34 54 Q22 46 10 54")],
+    ["Tepeden aşağı iki çizgi çek.", pth("M50 14 Q36 30 34 54") + pth("M50 14 Q64 30 66 54")],
+    ["Ortadan bir sap uzat, ucunu kıvır.", pth("M50 54 L50 84 Q50 94 40 90")]
+  ]);
+  add("gozluk", "Gözlük", "Eşyalar", [
+    ["İki büyük daire çiz.", circ(30, 52, 18) + circ(70, 52, 18)],
+    ["İkisini küçük bir köprüyle birleştir.", pth("M47 48 Q50 44 53 48")],
+    ["Yanlara iki kol ekle.", ln(14, 46, 2, 38) + ln(86, 46, 98, 38)]
+  ]);
+  add("hediye", "Hediye", "Eşyalar", [
+    ["Bir dikdörtgen çiz. Bu kutu.", rct(16, 46, 68, 44)],
+    ["Üstüne daha geniş bir kapak koy.", rct(12, 32, 76, 14)],
+    ["Ortadan aşağı bir kurdele çek.", ln(50, 32, 50, 90)],
+    ["Üstüne bir fiyonk yap.", pth("M50 32 Q30 10 28 28 Q34 34 50 32") + pth("M50 32 Q70 10 72 28 Q66 34 50 32")]
+  ]);
+  add("robot", "Robot", "Eşyalar", [
+    ["Köşeli büyük bir kafa çiz.", rct(26, 14, 48, 34, 6)],
+    ["İki göz ve düz bir ağız ekle.", circ(40, 30, 5) + circ(60, 30, 5) + ln(40, 41, 60, 41)],
+    ["Altına bir gövde çiz.", rct(30, 52, 40, 34, 4)],
+    ["Kollarını ve bacaklarını çiz.", ln(30, 60, 14, 76) + ln(70, 60, 86, 76) + ln(40, 86, 40, 96) + ln(60, 86, 60, 96)],
+    ["Kafasına bir anten ekle.", ln(50, 14, 50, 5) + dot(50, 4, 2.6)]
+  ]);
+
+  var wins = function (x, y, cols, rows, w, h, gx, gy) {
+    var s = "";
+    for (var i = 0; i < cols; i++) for (var j = 0; j < rows; j++) s += rct(x + i * gx, y + j * gy, w, h, 1);
+    return s;
+  };
+
+  /* Deniz */
+  add("palyaco", "Palyaço balığı", "Deniz", [
+    ["Büyük bir oval çiz. Bu balığın gövdesi.", ell(46, 50, 32, 22)],
+    ["Arkasına üçgen bir kuyruk ekle.", pth("M76 50 L96 34 L96 66 Z")],
+    ["Gövdeye iki eğri çizgi çiz.", pth("M34 29 Q28 50 34 71") + pth("M56 29 Q62 50 56 71")],
+    ["Üste ve alta birer yüzgeç ekle.", pth("M38 30 Q48 14 62 30") + pth("M44 70 Q50 82 58 70")],
+    ["Bir göz ve küçük bir ağız çiz.", dot(26, 46, 3.5) + pth("M16 54 Q20 58 25 56")]
+  ]);
+  add("melek", "Melek balığı", "Deniz", [
+    ["Bir baklava dilimi gibi gövde çiz.", pth("M50 10 L84 50 L50 90 L16 50 Z")],
+    ["Sağına üçgen bir kuyruk ekle.", pth("M84 50 L98 36 L98 64 Z")],
+    ["Tepeye kıvrımlı bir yüzgeç çiz.", pth("M50 10 Q62 2 74 6 Q64 16 66 26")],
+    ["İçine iki çizgi çek.", pth("M44 24 Q54 50 44 76") + pth("M58 30 Q66 50 58 70")],
+    ["Göz ve ağız çiz.", dot(32, 46, 3) + pth("M18 52 Q22 55 26 53")]
+  ]);
+  add("kilic", "Kılıç balığı", "Deniz", [
+    ["Uzun ince bir oval çiz.", ell(46, 54, 30, 12)],
+    ["Önüne sivri bir kılıç ekle.", pth("M76 52 L98 46 L76 56 Z")],
+    ["Arkasına kuyruk çiz.", pth("M16 54 L4 40 L8 54 L4 68 Z")],
+    ["Sırtına büyük bir yüzgeç ekle.", pth("M40 43 Q50 22 62 45")],
+    ["Bir göz çiz.", dot(64, 50, 2.5)]
+  ]);
+  add("kopekbaligi", "Köpek balığı", "Deniz", [
+    ["Uzun, sivri bir gövde çiz.", pth("M6 62 Q40 34 78 46 L94 56 Q50 80 6 62 Z")],
+    ["Sırtına üçgen bir yüzgeç ekle.", pth("M44 40 L54 18 L64 44")],
+    ["Arkaya kuyruk çiz.", pth("M12 62 L2 44 L2 78 Z")],
+    ["Göz ve solungaç çizgileri çiz.", dot(80, 52, 2.5) + ln(66, 52, 64, 60) + ln(60, 52, 58, 61)],
+    ["Ağzını ve sivri dişlerini çiz.", pth("M80 62 Q86 64 92 60") + pth("M82 62 L84 67 L86 62 L88 67 L90 61")]
+  ]);
+  add("balina", "Balina", "Deniz", [
+    ["Koca bir gövde çiz. Önü yuvarlak, altı düz olsun.", pth("M10 62 Q10 32 50 32 Q84 32 90 56 Q94 68 78 74 Q50 86 20 76 Q10 72 10 62 Z")],
+    ["Sağ tarafa kıvrık bir kuyruk ekle.", pth("M88 60 Q96 52 94 38") + pth("M88 66 Q98 68 98 80")],
+    ["Bir göz ve gülen bir ağız çiz.", dot(24, 56, 2.5) + pth("M12 66 Q24 74 36 68")],
+    ["Tepesinden su fışkırt.", ln(30, 32, 30, 20) + pth("M30 20 Q22 12 18 14") + pth("M30 20 Q38 12 42 14")],
+    ["Altına dalgalar çiz.", pth("M2 92 Q10 86 18 92 T34 92 T50 92 T66 92 T82 92 T98 92")]
+  ]);
+  add("ahtapot", "Ahtapot", "Deniz", [
+    ["Büyük yuvarlak bir kafa çiz.", circ(50, 36, 24)],
+    ["İki büyük göz ekle.", dot(42, 34, 4) + dot(58, 34, 4)],
+    ["Dışarıdaki iki kolu çiz.", pth("M30 52 Q14 62 20 80 Q22 88 12 90") + pth("M70 52 Q86 62 80 80 Q78 88 88 90")],
+    ["Ortadaki iki kolu çiz.", pth("M40 58 Q34 76 38 90 Q40 94 32 96") + pth("M60 58 Q66 76 62 90 Q60 94 68 96")],
+    ["Gülümseme ve benekler ekle.", pth("M42 44 Q50 50 58 44") + dot(38, 22, 2.5) + dot(50, 18, 2.5) + dot(62, 22, 2.5)]
+  ]);
+  add("yengec", "Yengeç", "Deniz", [
+    ["Yatık bir oval çiz. Bu yengecin gövdesi.", ell(50, 58, 26, 18)],
+    ["Üstüne iki saplı göz çiz.", ln(42, 42, 42, 32) + circ(42, 29, 4) + ln(58, 42, 58, 32) + circ(58, 29, 4)],
+    ["İki yana kol ve kocaman kıskaç çiz.", pth("M26 52 Q14 46 14 36") + pth("M74 52 Q86 46 86 36") + circ(14, 27, 9) + circ(86, 27, 9) + ln(14, 27, 18, 19) + ln(86, 27, 82, 19)],
+    ["Her yana iki bacak ekle.", ln(28, 66, 14, 78) + ln(32, 72, 22, 88) + ln(72, 66, 86, 78) + ln(68, 72, 78, 88)],
+    ["Gülen bir ağız çiz.", pth("M44 62 Q50 67 56 62")]
+  ]);
+  add("denizanasi", "Denizanası", "Deniz", [
+    ["Yarım daire gibi bir kafa çiz.", pth("M16 50 Q16 14 50 14 Q84 14 84 50 Z")],
+    ["Altına dalgalı kollar çiz.", pth("M26 50 Q18 66 28 76 Q36 88 26 96") + pth("M40 50 Q34 68 42 80 Q46 90 40 96") + pth("M56 50 Q60 68 52 80 Q48 90 56 96") + pth("M72 50 Q80 66 70 76 Q64 88 74 96")],
+    ["İki göz ve gülen bir ağız ekle.", dot(40, 34, 3) + dot(60, 34, 3) + pth("M42 42 Q50 48 58 42")],
+    ["Tepesine benekler koy.", dot(30, 26, 2.5) + dot(70, 26, 2.5) + dot(50, 22, 2.5)]
+  ]);
+  add("denizyildizi", "Deniz yıldızı", "Deniz", [
+    ["Kalın kollu bir yıldız çiz.", pth("M50 8 Q56 32 60 38 Q80 36 92 40 Q72 54 70 60 Q78 80 82 92 Q60 78 50 74 Q40 78 18 92 Q22 80 30 60 Q28 54 8 40 Q20 36 40 38 Q44 32 50 8 Z")],
+    ["Ortaya iki göz ve gülümseme ekle.", dot(44, 46, 2.5) + dot(56, 46, 2.5) + pth("M44 54 Q50 59 56 54")],
+    ["Kollarına benekler koy.", dot(50, 24, 2.5) + dot(80, 42, 2.5) + dot(72, 76, 2.5) + dot(28, 76, 2.5) + dot(20, 42, 2.5)]
+  ]);
+
+  /* Daha çok hayvan */
+  add("aslan", "Aslan", "Hayvanlar", [
+    ["Etrafına yuvarlaklar çiz. Bu aslanın yelesi.", petals(50, 50, 28, 10, 12)],
+    ["Ortaya büyük bir daire çiz. Bu yüzü.", circ(50, 50, 22)],
+    ["İki göz çiz.", dot(42, 46, 3) + dot(58, 46, 3)],
+    ["Burun ve ağız ekle.", pth("M46 54 L54 54 L50 59 Z") + pth("M50 59 Q44 66 38 62") + pth("M50 59 Q56 66 62 62")],
+    ["Yanaklara noktalar koy.", dot(40, 62, 1.4) + dot(44, 65, 1.4) + dot(56, 65, 1.4) + dot(60, 62, 1.4)]
+  ]);
+  add("baykus", "Baykuş", "Hayvanlar", [
+    ["Büyük bir oval çiz. Bu baykuşun gövdesi.", ell(50, 56, 28, 34)],
+    ["İki büyük göz çiz.", circ(38, 42, 10) + circ(62, 42, 10) + dot(38, 42, 4) + dot(62, 42, 4)],
+    ["Üçgen bir gaga ekle.", pth("M46 52 L54 52 L50 60 Z")],
+    ["Tepeye iki sivri kulak çiz.", pth("M26 30 L30 14 L42 24") + pth("M74 30 L70 14 L58 24")],
+    ["Kanatları çiz.", pth("M24 52 Q16 70 28 84") + pth("M76 52 Q84 70 72 84")],
+    ["Karnına tüyler ekle.", pth("M40 68 Q44 72 48 68") + pth("M52 68 Q56 72 60 68") + pth("M40 78 Q44 82 48 78") + pth("M52 78 Q56 82 60 78")]
+  ]);
+  add("ordek", "Ördek", "Hayvanlar", [
+    ["Yatık bir oval çiz. Bu ördeğin gövdesi.", ell(46, 64, 30, 20)],
+    ["Üstüne yuvarlak bir kafa ekle.", circ(76, 38, 14)],
+    ["Gaga ve göz çiz.", pth("M88 38 L98 42 L88 46 Z") + dot(78, 34, 2.5)],
+    ["Kanat ve kuyruk ekle.", pth("M34 62 Q46 52 58 66 Q46 76 34 62") + pth("M18 58 L8 50 L14 66")],
+    ["Altına su dalgaları çiz.", pth("M2 90 Q10 84 18 90 T34 90 T50 90 T66 90 T82 90 T98 90")]
+  ]);
+  add("inek", "İnek", "Hayvanlar", [
+    ["Büyük bir oval çiz. Bu ineğin yüzü.", ell(50, 54, 26, 28)],
+    ["Boynuz ve yanlara kulak ekle.", pth("M34 30 Q30 18 24 18") + pth("M66 30 Q70 18 76 18") + ell(20, 42, 10, 5) + ell(80, 42, 10, 5)],
+    ["İki göz çiz.", dot(40, 46, 3) + dot(60, 46, 3)],
+    ["Altına bir burun ve iki delik çiz.", ell(50, 72, 16, 10) + dot(44, 72, 2) + dot(56, 72, 2)],
+    ["Alnına bir benek koy.", edot(62, 36, 6, 5)]
+  ]);
+  add("fil", "Fil", "Hayvanlar", [
+    ["Büyük bir daire çiz. Bu filin kafası.", circ(50, 46, 26)],
+    ["Yanlara iki kocaman kulak ekle.", circ(18, 44, 15) + circ(82, 44, 15)],
+    ["İki küçük göz çiz.", dot(40, 42, 3) + dot(60, 42, 3)],
+    ["Ortadan aşağı uzun bir hortum çiz.", pth("M42 62 Q38 92 58 92 Q66 90 64 82") + pth("M56 66 Q54 82 60 82")],
+    ["Yanlara iki diş ekle.", pth("M36 66 Q28 78 36 84") + pth("M70 66 Q80 76 72 84")]
+  ]);
+  add("zurafa", "Zürafa", "Hayvanlar", [
+    ["Yatık bir oval çiz. Bu zürafanın gövdesi.", ell(38, 68, 26, 14)],
+    ["Dört uzun bacak çiz.", ln(22, 78, 20, 96) + ln(32, 80, 32, 96) + ln(46, 80, 46, 96) + ln(56, 76, 58, 96)],
+    ["Gövdeden yukarı uzun bir boyun çiz.", pth("M50 58 L58 24") + pth("M62 60 L72 28")],
+    ["Boynun üstüne bir kafa ekle.", ell(68, 20, 12, 8)],
+    ["İki boynuz, bir kulak ve bir göz çiz.", ln(64, 13, 64, 6) + dot(64, 5, 2) + ln(72, 13, 74, 6) + dot(74, 5, 2) + ell(58, 18, 4, 2.5) + dot(72, 18, 2)],
+    ["Gövdeye ve boyuna benekler koy.", edot(28, 66, 4, 3) + edot(40, 72, 4, 3) + edot(44, 62, 4, 3) + edot(60, 44, 3, 4) + edot(65, 34, 3, 3)],
+    ["Arkasına küçük bir kuyruk ekle.", pth("M14 64 Q8 72 10 82")]
+  ]);
+  add("dino", "Dinozor", "Hayvanlar", [
+    ["Büyük yatık bir oval çiz. Bu dinozorun gövdesi.", ell(44, 64, 28, 18)],
+    ["Gövdeden yukarı uzun bir boyun çiz.", pth("M62 54 Q74 40 70 22") + pth("M70 70 Q84 56 82 28")],
+    ["Boynun ucuna bir kafa çiz.", pth("M64 22 Q66 8 80 8 Q94 10 92 20 Q86 28 82 28 Q74 30 70 22")],
+    ["Göz ve burun deliği ekle.", dot(80, 14, 2) + dot(90, 15, 1.2)],
+    ["İki kalın bacak çiz.", pth("M30 78 L28 94 L38 94 L40 80") + pth("M52 80 L52 94 L62 94 L60 78")],
+    ["Arkasına uzun bir kuyruk ekle.", pth("M16 60 Q6 66 2 80 Q14 72 20 70")],
+    ["Sırtına sivri plakalar koy.", pth("M30 48 L34 38 L40 46") + pth("M42 46 L46 36 L52 46") + pth("M54 48 L58 38 L62 50")]
+  ]);
+
+  /* Daha çok yiyecek */
+  add("hamburger", "Hamburger", "Yiyecek", [
+    ["En alta yarım yuvarlak bir ekmek çiz.", pth("M12 74 L88 74 Q88 90 50 90 Q12 90 12 74")],
+    ["Üstüne kalın bir köfte koy.", rct(10, 62, 80, 10, 5)],
+    ["Köftenin üstüne peynir çiz.", pth("M14 62 L50 62 L58 74 L66 62 L86 62")],
+    ["Dalgalı bir marul ekle.", pth("M10 52 Q16 46 22 52 T34 52 T46 52 T58 52 T70 52 T82 52 T90 52")],
+    ["En üste kubbe gibi bir ekmek çiz.", pth("M12 50 Q12 16 50 16 Q88 16 88 50 Z")],
+    ["Üstüne susamlar serp.", edot(36, 30, 3, 1.8) + edot(50, 24, 3, 1.8) + edot(64, 30, 3, 1.8) + edot(44, 40, 3, 1.8) + edot(58, 40, 3, 1.8)]
+  ]);
+  add("cupcake", "Kek", "Yiyecek", [
+    ["Ters bir yamuk çiz. Bu kekin kabı.", pth("M20 56 L28 90 L72 90 L80 56 Z")],
+    ["Kaba dikey çizgiler çiz.", ln(36, 60, 38, 88) + ln(50, 60, 50, 88) + ln(64, 60, 62, 88)],
+    ["Üstüne dalgalı bir krema koy.", pth("M16 56 Q10 40 28 38 Q30 24 50 24 Q70 24 72 38 Q90 40 84 56 Z")],
+    ["En üste bir kiraz ekle.", circ(50, 17, 6)],
+    ["Krema üstüne renkli şekerler çiz.", ln(36, 44, 40, 48) + ln(58, 40, 62, 44) + ln(46, 34, 50, 36) + ln(68, 48, 72, 46)]
+  ]);
+  add("cilek", "Çilek", "Yiyecek", [
+    ["Kalp gibi bir çilek çiz. Üstü geniş, altı sivri olsun.", pth("M50 90 Q14 70 14 40 Q14 28 30 28 L70 28 Q86 28 86 40 Q86 70 50 90")],
+    ["Üstüne sivri yapraklar ekle.", pth("M30 28 L40 18 L50 26 L60 18 L70 28")],
+    ["Ortadan bir sap çiz.", ln(50, 26, 50, 12)],
+    ["Çekirdekleri ekle.", edot(34, 44, 2, 3) + edot(50, 46, 2, 3) + edot(66, 44, 2, 3) + edot(42, 58, 2, 3) + edot(58, 58, 2, 3) + edot(50, 70, 2, 3)]
+  ]);
+
+  /* Daha çok eşya */
+  add("saat", "Çalar saat", "Eşyalar", [
+    ["Büyük bir daire çiz. Bu saatin yüzü.", circ(50, 54, 34)],
+    ["Dört yöne küçük çizgiler çiz.", ln(50, 24, 50, 30) + ln(50, 78, 50, 84) + ln(20, 54, 26, 54) + ln(74, 54, 80, 54)],
+    ["Akrep ve yelkovanı çiz.", ln(50, 54, 50, 34) + ln(50, 54, 64, 60) + dot(50, 54, 3)],
+    ["Üstüne iki zil koy.", circ(24, 22, 9) + circ(76, 22, 9)],
+    ["Altına iki ayak ekle.", ln(32, 84, 26, 96) + ln(68, 84, 74, 96)]
+  ]);
+  add("kitap", "Kitap", "Eşyalar", [
+    ["Açık bir kitap çiz. Ortası çukur olsun.", pth("M10 28 L50 36 L90 28 L90 80 L50 88 L10 80 Z")],
+    ["Ortadan bir çizgi çek.", ln(50, 36, 50, 88)],
+    ["Sayfalara yazı çizgileri ekle.", ln(18, 44, 42, 48) + ln(18, 54, 42, 58) + ln(18, 64, 42, 68) + ln(58, 48, 82, 44) + ln(58, 58, 82, 54) + ln(58, 68, 82, 64)]
+  ]);
+
+  /* Doğa: kamp */
+  add("kamp", "Kamp gecesi", "Doğa", [
+    ["Büyük bir üçgen çiz. Bu çadır.", pth("M6 88 L36 24 L66 88 Z")],
+    ["Çadıra bir giriş çiz.", pth("M28 88 L36 62 L44 88")],
+    ["Sağ tarafa çapraz iki odun koy.", ln(72, 92, 96, 84) + ln(72, 84, 96, 92)],
+    ["Odunların üstüne ateş çiz.", pth("M84 84 Q76 70 84 58 Q88 68 92 72 Q94 80 84 84")],
+    ["Gökyüzüne bir ay ekle.", pth("M84 8 Q70 18 82 32 Q64 30 66 16 Q68 6 84 8")],
+    ["Yıldızlar serp.", dot(52, 12, 1.8) + dot(24, 12, 1.8) + dot(14, 30, 1.8) + dot(58, 34, 1.8) + dot(96, 44, 1.8)]
+  ]);
+
+  /* Büyük resimler */
+  add("kale", "Kale", "Büyük resimler", [
+    ["Ortaya yüksek bir dikdörtgen çiz.", pth("M30 90 L30 40 L70 40 L70 90 Z")],
+    ["İki yanına birer kule ekle.", pth("M10 90 L10 50 L28 50") + pth("M90 90 L90 50 L72 50")],
+    ["Ortadaki kulenin üstüne mazgallar çiz.", pth("M30 40 L30 32 L38 32 L38 40 L46 40 L46 32 L54 32 L54 40 L62 40 L62 32 L70 32 L70 40")],
+    ["Yan kulelere de mazgallar çiz.", pth("M10 50 L10 42 L16 42 L16 50 L22 50 L22 42 L28 42 L28 50") + pth("M72 50 L72 42 L78 42 L78 50 L84 50 L84 42 L90 42 L90 50")],
+    ["Ortaya kemerli bir kapı çiz.", pth("M42 90 L42 72 Q50 62 58 72 L58 90")],
+    ["Pencereleri ekle.", circ(50, 52, 4) + ln(19, 62, 19, 74) + ln(81, 62, 81, 74)],
+    ["Tepeye bir bayrak dik.", ln(50, 32, 50, 12) + pth("M50 12 L66 17 L50 22 Z")]
+  ]);
+  add("gemi", "Gemi", "Büyük resimler", [
+    ["Büyük bir gövde çiz. Üstü geniş, altı dar olsun.", pth("M8 62 L92 62 L80 84 L20 84 Z")],
+    ["Ortaya bir kabin koy.", rct(32, 44, 36, 18)],
+    ["Kabinin üstüne bir baca ekle.", rct(44, 26, 12, 18)],
+    ["Kabine üç pencere, gövdeye dört yuvarlak pencere çiz.", circ(40, 53, 3.5) + circ(50, 53, 3.5) + circ(60, 53, 3.5) + circ(30, 73, 2.5) + circ(44, 73, 2.5) + circ(58, 73, 2.5) + circ(72, 73, 2.5)],
+    ["Bacadan duman çıkar.", pth("M52 24 Q58 18 52 12 Q47 8 52 4")],
+    ["Altına dalgalar çiz.", pth("M2 92 Q10 86 18 92 T34 92 T50 92 T66 92 T82 92 T98 92")]
+  ]);
+  add("uzay", "Uzay", "Büyük resimler", [
+    ["Sol alta büyük bir gezegen çiz.", circ(32, 70, 18)],
+    ["Gezegenin etrafına bir halka çiz.", ell(32, 70, 30, 7)],
+    ["Sağ üste bir roket gövdesi çiz.", pth("M72 14 Q82 26 80 46 L64 46 Q62 26 72 14") + circ(72, 28, 4)],
+    ["Roketin kanatlarını çiz.", pth("M64 38 L56 50 L64 46") + pth("M80 38 L88 50 L80 46")],
+    ["Roketin altına alev ekle.", pth("M68 48 Q72 62 76 48")],
+    ["Uzaya yıldızlar serp.", dot(14, 14, 1.8) + dot(44, 10, 1.8) + dot(92, 12, 1.8) + dot(50, 38, 1.8) + dot(94, 66, 1.8) + dot(80, 88, 1.8)]
+  ]);
+  add("ciftlik", "Çiftlik", "Büyük resimler", [
+    ["Sağa büyük bir ahır gövdesi çiz.", rct(50, 52, 42, 38)],
+    ["Ahırın üstüne çatı ekle.", pth("M44 54 L71 28 L98 54")],
+    ["Ahıra çarpılı bir kapı çiz.", rct(62, 66, 18, 24) + ln(62, 66, 80, 90) + ln(80, 66, 62, 90)],
+    ["Sol üste bir güneş çiz.", circ(22, 18, 8) + rays(22, 18, 12, 18, 8)],
+    ["Sola bir ağaç ekle.", ln(20, 63, 20, 76) + circ(20, 50, 13)],
+    ["Altına bir çit çiz.", ln(4, 84, 44, 84) + ln(4, 92, 44, 92) + ln(10, 78, 10, 96) + ln(24, 78, 24, 96) + ln(38, 78, 38, 96)]
+  ]);
+  add("sehir", "Şehir", "Büyük resimler", [
+    ["Yan yana üç bina çiz. Ortadaki en yüksek olsun.", rct(6, 40, 26, 56) + rct(36, 18, 28, 78) + rct(68, 52, 26, 44)],
+    ["Binalara pencereler çiz.", wins(11, 46, 2, 3, 6, 6, 10, 12) + wins(41, 24, 2, 5, 6, 6, 12, 12) + wins(73, 58, 2, 2, 6, 6, 12, 12)],
+    ["Her binaya bir kapı koy.", rct(14, 84, 10, 12) + rct(44, 82, 12, 14) + rct(76, 84, 10, 12)],
+    ["Gökyüzüne bir ay çiz.", circ(84, 20, 9) + circ(80, 18, 1.4)],
+    ["Yıldızlar ve yer çizgisi ekle.", dot(12, 14, 1.8) + dot(24, 26, 1.8) + dot(50, 8, 1.8) + dot(76, 36, 1.8) + ln(2, 97, 98, 97)]
+  ]);
+
+  var CATS = ["Hepsi", "Hayvanlar", "Deniz", "Taşıtlar", "Doğa", "Yiyecek", "Eşyalar", "Büyük resimler"];
+
+  /* ---------- kayıt ---------- */
+  var KEY = "cizim-atolyesi-bitenler";
+  var done = [];
+  try { done = JSON.parse(localStorage.getItem(KEY) || "[]") || []; } catch (err) { done = []; }
+  var saveDone = function () { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (err) { /* depolama kapalı */ } };
+
+  /* ---------- yardımcılar ---------- */
+  var app = document.getElementById("app");
+  var find = function (id) { for (var i = 0; i < D.length; i++) if (D[i].id === id) return D[i]; return null; };
+  var starSvg = function (cls) {
+    return '<svg class="' + cls + '" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 6 L62 37 L95 39 L69 60 L78 93 L50 74 L22 93 L31 60 L5 39 L38 37 Z" fill="var(--star)" stroke="var(--ink)" stroke-width="5" stroke-linejoin="round"/></svg>';
+  };
+  var art = function (d, upto, withNow) {
+    var s = '<svg class="art" viewBox="0 0 100 100" role="img" aria-label="' + d.name + ' çizimi">';
+    for (var i = 0; i < upto; i++) {
+      s += '<g class="st' + (withNow && i === upto - 1 ? " now" : "") + '">' + d.steps[i][1] + "</g>";
+    }
+    return s + "</svg>";
+  };
+  var toast = function (msg) {
+    var t = document.createElement("div");
+    t.className = "toast";
+    t.setAttribute("role", "status");
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 4200);
+  };
+
+  /* ---------- ana sayfa ---------- */
+  var cat = "Hepsi";
+  try { cat = sessionStorage.getItem("cizim-kategori") || "Hepsi"; } catch (err) { cat = "Hepsi"; }
+
+  function home() {
+    var list = D.filter(function (d) { return cat === "Hepsi" || d.cat === cat; });
+    var n = done.filter(function (id) { return !!find(id); }).length;
+    var html = '<div class="top"><h1>Çizim Atölyesi</h1><div class="progress"><div class="txt">' + D.length + " resimden " + n + " tanesini çizdin</div>" +
+      '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + D.length + '" aria-valuenow="' + n + '"><i style="width:' + Math.round(n / D.length * 100) + '%"></i></div></div></div>';
+    html += '<div class="tabs" id="tabs">' + CATS.map(function (c) { return '<button class="tab" aria-pressed="' + (c === cat) + '" data-cat="' + c + '">' + c + "</button>"; }).join("") +
+      '<button class="tab rand" id="rand">Bana bir resim seç</button></div>';
+    html += '<div class="grid" id="grid">' + list.map(function (d) {
+      var isDone = done.indexOf(d.id) >= 0;
+      return '<button class="card" data-id="' + d.id + '"><span class="thumb">' + art(d, d.steps.length, false) + '</span><span class="nm">' + d.name + '</span><span class="sub">' + d.steps.length + " adım</span>" + (isDone ? starSvg("badge") : "") + "</button>";
+    }).join("") + "</div>";
+    app.innerHTML = html;
+    document.getElementById("tabs").onclick = function (ev) {
+      var b = ev.target.closest("button");
+      if (!b) return;
+      if (b.id === "rand") {
+        var pool = D.filter(function (d) { return done.indexOf(d.id) < 0; });
+        if (!pool.length) pool = D;
+        location.hash = pool[Math.floor(Math.random() * pool.length)].id;
+        return;
+      }
+      cat = b.getAttribute("data-cat");
+      try { sessionStorage.setItem("cizim-kategori", cat); } catch (err) { /* önemli değil */ }
+      home();
+    };
+    document.getElementById("grid").onclick = function (ev) {
+      var b = ev.target.closest(".card");
+      if (b) location.hash = b.getAttribute("data-id");
+    };
+  }
+
+  /* ---------- ders ---------- */
+  var cur = null, step = 1;
+
+  function lesson(d) {
+    cur = d; step = 1;
+    app.innerHTML =
+      '<button class="back" id="back">&#8592; Resimler</button>' +
+      '<div class="lesson"><div class="stage" id="stage"></div>' +
+      '<div class="panel"><div><div class="kicker" id="kick"></div><h2>' + d.name + "</h2></div>" +
+      '<div class="say" id="say" aria-live="polite"></div><div class="dots" id="dots"></div>' +
+      '<div class="nav"><button class="btn prev" id="prev">Geri</button><button class="btn next" id="next">Sonraki adım</button></div>' +
+      '<div class="hint">iPad\'i sehpaya yasla, kâğıdı yanına koy ve kalemle çiz.</div></div></div>';
+    document.getElementById("back").onclick = function () { location.hash = ""; };
+    document.getElementById("prev").onclick = function () { if (step > 1) { step--; paint(); } };
+    document.getElementById("next").onclick = function () {
+      if (step < cur.steps.length) { step++; paint(); } else { finish(); }
+    };
+    document.getElementById("dots").onclick = function (ev) {
+      var b = ev.target.closest("button");
+      if (b) { step = +b.getAttribute("data-n"); paint(); }
+    };
+    paint();
+  }
+
+  function paint() {
+    var d = cur, n = d.steps.length;
+    document.getElementById("stage").innerHTML = art(d, step, true);
+    document.getElementById("kick").textContent = "Adım " + step + " / " + n;
+    document.getElementById("say").textContent = d.steps[step - 1][0];
+    document.getElementById("dots").innerHTML = d.steps.map(function (_, i) {
+      var k = i + 1;
+      return '<button data-n="' + k + '" class="' + (k === step ? "on" : k < step ? "past" : "") + '" aria-label="Adım ' + k + '">' + k + "</button>";
+    }).join("");
+    document.getElementById("prev").disabled = step === 1;
+    var nx = document.getElementById("next");
+    if (step === n) { nx.textContent = "Bitti!"; nx.className = "btn finish"; }
+    else { nx.textContent = "Sonraki adım"; nx.className = "btn next"; }
+  }
+
+  function finish() {
+    if (done.indexOf(cur.id) < 0) { done.push(cur.id); saveDone(); }
+    var colors = ["#FF4F81", "#2F6BFF", "#FFB800", "#1FA36B", "#9B5DE5"], conf = "";
+    for (var i = 0; i < 28; i++) {
+      conf += '<i class="piece" style="left:' + Math.round(Math.random() * 100) + "%;background:" + colors[i % 5] + ";animation-delay:" + (Math.random() * 2).toFixed(2) + 's"></i>';
+    }
+    var nDone = done.filter(function (id) { return !!find(id); }).length;
+    var w = document.createElement("div");
+    w.className = "win";
+    w.setAttribute("role", "dialog");
+    w.setAttribute("aria-label", "Tebrikler");
+    w.innerHTML = '<div class="box">' + conf + starSvg("big") + "<h2>Harikasın!</h2><div>" + cur.name + " resmini bitirdin. " + D.length + " resimden " + nDone + " tanesini çizdin.</div>" +
+      '<div class="row"><button class="btn prev" id="again">Tekrar çiz</button><button class="btn next" id="more">Başka resim</button></div></div>';
+    document.body.appendChild(w);
+    document.getElementById("again").onclick = function () { w.remove(); step = 1; paint(); };
+    document.getElementById("more").onclick = function () { w.remove(); location.hash = ""; };
+  }
+
+  /* ---------- yönlendirme ---------- */
+  function route() {
+    var id = decodeURIComponent((location.hash || "").replace(/^#/, ""));
+    var d = id ? find(id) : null;
+    var old = document.querySelector(".win");
+    if (old) old.remove();
+    if (d) lesson(d); else home();
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", route);
+  route();
+})();
+</script>
+
+</body>
+</html>
