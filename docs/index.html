@@ -674,20 +674,22 @@ h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
   }
   function stopSpeak() { clearTimeout(tmr); if (synth) synth.cancel(); speaking = false; mark(); }
   var utt = null, tmr = 0;
+  function say(text) {
+    var u = utt = new SpeechSynthesisUtterance(text);
+    u.lang = "tr-TR"; u.rate = 0.85; u.pitch = 1.1; u.volume = 1;
+    var v = trVoice(); if (v) u.voice = v;
+    u.onstart = function () { speaking = true; mark(); };
+    u.onend = u.onerror = function () { speaking = false; mark(); };
+    synth.speak(u);
+  }
   function speak() {
     if (!synth || !cur) return;
     clearTimeout(tmr);
-    synth.cancel();
+    var text = cur.steps[step - 1][0], busy = synth.speaking || synth.pending;
     if (synth.paused) synth.resume();
-    var text = cur.steps[step - 1][0];
-    tmr = setTimeout(function () {
-      var u = utt = new SpeechSynthesisUtterance(text);
-      u.lang = "tr-TR"; u.rate = 0.85; u.pitch = 1.1; u.volume = 1;
-      var v = trVoice(); if (v) u.voice = v;
-      u.onstart = function () { speaking = true; mark(); };
-      u.onend = u.onerror = function () { speaking = false; mark(); };
-      synth.speak(u);
-    }, 80);
+    if (!busy) { say(text); return; }
+    synth.cancel();
+    tmr = setTimeout(function () { say(text); }, 80);
   }
   if (synth && synth.addEventListener) synth.addEventListener("voiceschanged", function () {});
 
