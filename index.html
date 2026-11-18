@@ -661,8 +661,8 @@ h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
     if (!b) return;
     b.className = "spk" + (speaking ? " on" : voiceOn ? "" : " off");
   }
-  function stopSpeak() { clearTimeout(tmr); if (synth) synth.cancel(); speaking = false; mark(); }
-  var utt = null, tmr = 0;
+  function stopSpeak() { clearTimeout(tmr); if (clip) { clip.pause(); clip = null; } if (synth) synth.cancel(); speaking = false; mark(); }
+  var utt = null, tmr = 0, clip = null;
   function say(text) {
     var u = utt = new SpeechSynthesisUtterance(text);
     u.lang = "tr-TR"; u.rate = 0.85; u.pitch = 1.1; u.volume = 1;
@@ -672,13 +672,22 @@ h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
     synth.speak(u);
   }
   function speak() {
-    if (!synth || !cur) return;
+    if (!cur) return;
     clearTimeout(tmr);
-    var text = cur.steps[step - 1][0], busy = synth.speaking || synth.pending;
-    if (synth.paused) synth.resume();
-    if (!busy) { say(text); return; }
-    synth.cancel();
-    tmr = setTimeout(function () { say(text); }, 80);
+    if (clip) { clip.pause(); clip = null; }
+    var a = clip = new Audio("ses/" + cur.id + "-" + step + ".mp3");
+    a.onplaying = function () { speaking = true; mark(); };
+    a.onended = function () { speaking = false; mark(); };
+    var p = a.play();
+    if (p && p.catch) p.catch(function () {
+      speaking = false; mark();
+      if (a !== clip || !synth) return;
+      var text = cur.steps[step - 1][0];
+      if (synth.paused) synth.resume();
+      if (!(synth.speaking || synth.pending)) { say(text); return; }
+      synth.cancel();
+      tmr = setTimeout(function () { say(text); }, 80);
+    });
   }
   if (synth && synth.addEventListener) synth.addEventListener("voiceschanged", function () {});
 
