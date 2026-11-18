@@ -74,6 +74,10 @@ h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
 .panel .kicker { font-weight: 800; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; font-size: .85rem; }
 .panel h2 { font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 700; }
 .say { font-family: var(--font-display); font-size: clamp(1.4rem, 3.2vw, 1.8rem); font-weight: 500; line-height: 1.3; background: var(--card); border: 3px solid var(--line); border-radius: 22px; padding: 16px 18px; min-height: 5.6em; }
+.sayrow { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: stretch; }
+.spk { width: 88px; border-radius: 22px; border: 0; background: var(--hi); color: #fff; font-size: 2.2rem; line-height: 1; padding: 0; }
+.spk.on { outline: 4px solid var(--ink); outline-offset: 2px; }
+.spk.off { opacity: .45; }
 .dots { display: flex; flex-wrap: wrap; gap: 8px; }
 .dots button { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--line); background: var(--card); font-weight: 800; padding: 0; }
 .dots button.on { background: var(--hi); border-color: var(--hi); color: #fff; }
@@ -621,10 +625,10 @@ h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
       '<button class="back" id="back">&#8592; Resimler</button>' +
       '<div class="lesson"><div class="stage" id="stage"></div>' +
       '<div class="panel"><div><div class="kicker" id="kick"></div><h2>' + d.name + "</h2></div>" +
-      '<div class="say" id="say" aria-live="polite"></div><div class="dots" id="dots"></div>' +
+      '<div class="sayrow"><div class="say" id="say" aria-live="polite"></div><button class="spk" id="spk" aria-label="Sesli oku">&#128266;</button></div><div class="dots" id="dots"></div>' +
       '<div class="nav"><button class="btn prev" id="prev">Geri</button><button class="btn next" id="next">Sonraki adım</button></div>' +
       '<div class="hint">iPad\'i sehpaya yasla, kâğıdı yanına koy ve kalemle çiz.</div></div></div>';
-    document.getElementById("back").onclick = function () { location.hash = ""; };
+    document.getElementById("back").onclick = function () { stopSpeak(); location.hash = ""; };
     document.getElementById("prev").onclick = function () { if (step > 1) { step--; paint(); } };
     document.getElementById("next").onclick = function () {
       if (step < cur.steps.length) { step++; paint(); } else { finish(); }
@@ -633,8 +637,42 @@ h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
       var b = ev.target.closest("button");
       if (b) { step = +b.getAttribute("data-n"); paint(); }
     };
+    document.getElementById("spk").onclick = function () {
+      if (speaking) { voiceOn = false; stopSpeak(); } else { voiceOn = true; speak(); }
+      saveVoice(); mark();
+    };
+    document.getElementById("say").onclick = function () { voiceOn = true; speak(); saveVoice(); mark(); };
     paint();
   }
+
+  /* ---------- sesli okuma ---------- */
+  var VKEY = "cizim-atolyesi-ses", voiceOn = true, speaking = false;
+  try { voiceOn = localStorage.getItem(VKEY) !== "0"; } catch (err) {}
+  var saveVoice = function () { try { localStorage.setItem(VKEY, voiceOn ? "1" : "0"); } catch (err) {} };
+  var synth = window.speechSynthesis;
+
+  function trVoice() {
+    var vs = synth.getVoices() || [];
+    for (var i = 0; i < vs.length; i++) if (/^tr/i.test(vs[i].lang)) return vs[i];
+    return null;
+  }
+  function mark() {
+    var b = document.getElementById("spk");
+    if (!b) return;
+    b.className = "spk" + (speaking ? " on" : voiceOn ? "" : " off");
+  }
+  function stopSpeak() { if (synth) synth.cancel(); speaking = false; mark(); }
+  function speak() {
+    if (!synth || !cur) return;
+    synth.cancel();
+    var u = new SpeechSynthesisUtterance(cur.steps[step - 1][0]);
+    u.lang = "tr-TR"; u.rate = 0.85; u.pitch = 1.1;
+    var v = trVoice(); if (v) u.voice = v;
+    u.onstart = function () { speaking = true; mark(); };
+    u.onend = u.onerror = function () { speaking = false; mark(); };
+    synth.speak(u);
+  }
+  if (synth && synth.addEventListener) synth.addEventListener("voiceschanged", function () {});
 
   function paint() {
     var d = cur, n = d.steps.length;
@@ -649,6 +687,7 @@ h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
     var nx = document.getElementById("next");
     if (step === n) { nx.textContent = "Bitti!"; nx.className = "btn finish"; }
     else { nx.textContent = "Sonraki adım"; nx.className = "btn next"; }
+    if (voiceOn) speak(); else mark();
   }
 
   function finish() {
@@ -671,6 +710,7 @@ h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
 
   /* ---------- yönlendirme ---------- */
   function route() {
+    stopSpeak();
     var id = decodeURIComponent((location.hash || "").replace(/^#/, ""));
     var d = id ? find(id) : null;
     var old = document.querySelector(".win");
