@@ -721,6 +721,8 @@ h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
     w.innerHTML = '<div class="box">' + conf + starSvg("big") + "<h2>Harikasın!</h2><div>" + cur.name + " resmini bitirdin. " + D.length + " resimden " + nDone + " tanesini çizdin.</div>" +
       '<div class="row"><button class="btn prev" id="again">Tekrar çiz</button><button class="btn next" id="more">Başka resim</button></div></div>';
     document.body.appendChild(w);
+    stopSpeak();
+    try { var g = new Audio("ses/galatasaray.mp3"); g.play().catch(function () {}); } catch (err) {}
     document.getElementById("again").onclick = function () { w.remove(); step = 1; paint(); };
     document.getElementById("more").onclick = function () { w.remove(); location.hash = ""; };
   }
